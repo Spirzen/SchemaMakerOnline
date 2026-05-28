@@ -91,6 +91,15 @@ export function Toolbar({
           PDF
         </button>
       </div>
+      <div className="toolbar-divider" />
+      <a
+        className="toolbar-btn toolbar-link"
+        href="https://spirzen.ru"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Вселенная IT
+      </a>
     </header>
   );
 }
