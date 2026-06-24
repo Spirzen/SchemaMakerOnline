@@ -1,5 +1,6 @@
 import { PALETTE, STROKE_COLORS } from '../types/schema';
 import type { SchemaElement } from '../types/schema';
+import { canElementHaveText } from '../utils/shapes';
 import './PropertiesPanel.css';
 
 interface Props {
@@ -42,9 +43,7 @@ export function PropertiesPanel({
           <label className="properties-label">Тип</label>
           <span className="properties-type">{labelForType(selected.type)}</span>
 
-          {(selected.type === 'text' ||
-            selected.type === 'comment' ||
-            selected.text !== undefined) && (
+          {canElementHaveText(selected.type) && (
             <>
               <label className="properties-label" htmlFor="prop-text">
                 Текст
@@ -53,6 +52,7 @@ export function PropertiesPanel({
                 id="prop-text"
                 className="properties-textarea"
                 value={selected.text ?? ''}
+                placeholder="Двойной клик на холсте или фигуре"
                 onChange={(e) => onUpdateSelected({ text: e.target.value })}
                 rows={3}
               />

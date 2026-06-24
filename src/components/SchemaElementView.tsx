@@ -1,9 +1,10 @@
 import { useRef } from 'react';
-import { Group, Line, Rect, Circle, RegularPolygon, Text, Arrow } from 'react-konva';
+import { Group, Line, Rect, Circle, Text, Arrow } from 'react-konva';
 import type Konva from 'konva';
 import type { SchemaElement } from '../types/schema';
 import { getElementBounds } from '../utils/bounds';
 import { getAnchors } from '../utils/anchors';
+import { canElementHaveText, diamondPoints, trianglePoints } from '../utils/shapes';
 
 interface Props {
   element: SchemaElement;
@@ -15,6 +16,7 @@ interface Props {
   onDragEnd: (id: string, x: number, y: number) => void;
   onTransformEnd: (id: string, patch: Partial<SchemaElement>) => void;
   onEditText?: (id: string) => void;
+  editableText?: boolean;
   onAnchorDragStart?: (
     elId: string,
     anchorIndex: number,
@@ -34,11 +36,9 @@ export function SchemaElementView({
   onTransformEnd,
   onEditText,
   onAnchorDragStart,
+  editableText = false,
 }: Props) {
   const groupRef = useRef<Konva.Group>(null);
-
-  const isTextLike =
-    el.type === 'text' || el.type === 'comment' || Boolean(el.text);
 
   const handleSelect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     e.cancelBubble = true;
@@ -48,7 +48,7 @@ export function SchemaElementView({
 
   const handleDblClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     e.cancelBubble = true;
-    if (isTextLike) onEditText?.(el.id);
+    if (editableText && canElementHaveText(el.type)) onEditText?.(el.id);
   };
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -204,6 +204,7 @@ export function SchemaElementView({
             verticalAlign="middle"
             fontSize={el.fontSize ?? 14}
             fill={el.stroke}
+            wrap="word"
             listening={false}
           />
         )}
@@ -217,14 +218,13 @@ export function SchemaElementView({
   if (el.type === 'diamond') {
     const w = el.width ?? 100;
     const h = el.height ?? 80;
+    const pts = diamondPoints(w, h);
+    const textPad = Math.min(w, h) * 0.22;
     return (
       <Group {...groupProps}>
-        <RegularPolygon
-          x={w / 2}
-          y={h / 2}
-          sides={4}
-          radius={Math.min(w, h) / 2}
-          rotation={45}
+        <Line
+          points={pts}
+          closed
           fill={el.fill}
           stroke={el.stroke}
           strokeWidth={el.strokeWidth}
@@ -235,12 +235,15 @@ export function SchemaElementView({
         {el.text && (
           <Text
             text={el.text}
-            width={w}
-            height={h}
+            x={textPad}
+            y={textPad}
+            width={w - textPad * 2}
+            height={h - textPad * 2}
             align="center"
             verticalAlign="middle"
             fontSize={el.fontSize ?? 14}
             fill={el.stroke}
+            wrap="word"
             listening={false}
           />
         )}
@@ -254,13 +257,12 @@ export function SchemaElementView({
   if (el.type === 'triangle') {
     const w = el.width ?? 100;
     const h = el.height ?? 80;
+    const pts = trianglePoints(w, h);
     return (
       <Group {...groupProps}>
-        <RegularPolygon
-          x={w / 2}
-          y={h / 2}
-          sides={3}
-          radius={Math.min(w, h) / 2}
+        <Line
+          points={pts}
+          closed
           fill={el.fill}
           stroke={el.stroke}
           strokeWidth={el.strokeWidth}
@@ -271,12 +273,15 @@ export function SchemaElementView({
         {el.text && (
           <Text
             text={el.text}
-            width={w}
-            height={h}
+            x={w * 0.15}
+            y={h * 0.35}
+            width={w * 0.7}
+            height={h * 0.55}
             align="center"
             verticalAlign="middle"
             fontSize={el.fontSize ?? 14}
             fill={el.stroke}
+            wrap="word"
             listening={false}
           />
         )}
@@ -341,6 +346,8 @@ export function SchemaElementView({
           fontSize={el.fontSize ?? 14}
           fill={el.stroke}
           fontStyle={el.type === 'text' ? '500' : 'normal'}
+          align={isTextOnly ? 'left' : 'center'}
+          verticalAlign={isTextOnly ? 'top' : 'middle'}
           wrap="word"
           listening={false}
         />

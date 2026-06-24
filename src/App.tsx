@@ -8,6 +8,7 @@ import { TextEditorOverlay } from './components/TextEditorOverlay';
 import { useSchemaStore } from './hooks/useSchemaStore';
 import type { ToolMode } from './types/schema';
 import { createElementAt } from './utils/createElement';
+import { canElementHaveText } from './utils/shapes';
 import {
   downloadDataUrl,
   downloadJson,
@@ -57,6 +58,13 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [state.elements, state.viewport, state.docName, toDocument]);
 
+  const startTextEdit = useCallback((id: string) => {
+    if (canvasWrapRef.current) {
+      setCanvasRect(canvasWrapRef.current.getBoundingClientRect());
+    }
+    setEditingTextId(id);
+  }, []);
+
   const handleDropShape = useCallback(
     (tool: ToolMode, x: number, y: number) => {
       const el = createElementAt(tool, x, y, {
@@ -68,9 +76,12 @@ export default function App() {
         dispatch({ type: 'ADD_ELEMENT', element: el });
         dispatch({ type: 'SELECT', ids: [el.id], mode: 'replace' });
         dispatch({ type: 'SET_TOOL', tool: 'select' });
+        if (canElementHaveText(el.type)) {
+          window.setTimeout(() => startTextEdit(el.id), 0);
+        }
       }
     },
-    [state.fillColor, state.strokeColor, state.strokeWidth, dispatch],
+    [state.fillColor, state.strokeColor, state.strokeWidth, dispatch, startTextEdit],
   );
 
   useEffect(() => {
@@ -111,10 +122,18 @@ export default function App() {
         dispatch({ type: 'SELECT', ids: [] });
         dispatch({ type: 'SET_TOOL', tool: 'select' });
       }
+      if (e.key === 'F2') {
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (selected && canElementHaveText(selected.type)) {
+          e.preventDefault();
+          startTextEdit(selected.id);
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [dispatch, editingTextId]);
+  }, [dispatch, editingTextId, selected, startTextEdit]);
 
   const handleExportImage = useCallback(
     async (format: 'png' | 'jpeg') => {
@@ -257,7 +276,7 @@ export default function App() {
           )}
           {state.tool === 'select' && (
             <div className="canvas-hint canvas-hint-subtle">
-              Рамкой — выделение · Shift+клик — несколько · углы — размер и поворот
+              Двойной клик — текст · F2 — правка · Пробел+перетаскивание — панорама · колёсико — масштаб
             </div>
           )}
           <div className="canvas-container" ref={canvasWrapRef}>
@@ -284,12 +303,7 @@ export default function App() {
             onElementsReplace={(elements) =>
               dispatch({ type: 'SET_ELEMENTS', elements })
             }
-            onEditText={(id) => {
-              if (canvasWrapRef.current) {
-                setCanvasRect(canvasWrapRef.current.getBoundingClientRect());
-              }
-              setEditingTextId(id);
-            }}
+            onEditText={startTextEdit}
           />
           {editingElement && canvasRect && (
             <TextEditorOverlay

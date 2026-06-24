@@ -9,6 +9,7 @@ import { findElementsInRect, getElementBounds } from '../utils/bounds';
 import { eraseAtPoint } from '../utils/eraser';
 import { isShapeTool } from '../utils/createElement';
 import { elementsAreInteractive } from '../utils/tools';
+import { diamondPoints, trianglePoints } from '../utils/shapes';
 
 interface Props {
   elements: SchemaElement[];
@@ -80,6 +81,7 @@ export function SchemaCanvas({
   const [selectionDrag, setSelectionDrag] = useState<SelectionDrag | null>(null);
   const isPanning = useRef(false);
   const isErasing = useRef(false);
+  const spaceHeld = useRef(false);
   const lastPan = useRef({ x: 0, y: 0 });
   const shiftHeld = useRef(false);
   const interactive = elementsAreInteractive(tool);
@@ -175,12 +177,38 @@ export function SchemaCanvas({
   }, [tool, stageRef]);
 
   const defaultCursor = () => {
+    if (spaceHeld.current) return isPanning.current ? 'grabbing' : 'grab';
     if (tool === 'pan') return 'grab';
     if (tool === 'eraser') return 'cell';
     if (tool === 'select') return 'default';
     if (tool === 'connector') return 'crosshair';
     return 'crosshair';
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      spaceHeld.current = true;
+      const stage = stageRef.current;
+      if (stage) stage.container().style.cursor = 'grab';
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      spaceHeld.current = false;
+      isPanning.current = false;
+      const stage = stageRef.current;
+      if (stage) stage.container().style.cursor = defaultCursor();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [tool, stageRef]);
 
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
@@ -206,12 +234,15 @@ export function SchemaCanvas({
   };
 
   const finishShape = useCallback(
-    (el: SchemaElement) => {
+    (el: SchemaElement, openTextEditor = false) => {
       onAdd(el);
       setDrawing(null);
       onSelect([el.id], 'replace');
+      if (openTextEditor) {
+        window.setTimeout(() => onEditText?.(el.id), 0);
+      }
     },
-    [onAdd, onSelect],
+    [onAdd, onSelect, onEditText],
   );
 
   const findShapeAtPoint = (wx: number, wy: number): SchemaElement | undefined => {
@@ -244,9 +275,11 @@ export function SchemaCanvas({
     const clickedOnEmpty =
       e.target === stage || e.target.name() === 'background-grid';
 
-    if (tool === 'pan' || e.evt.button === 1) {
+    if (tool === 'pan' || e.evt.button === 1 || (spaceHeld.current && e.evt.button === 0)) {
       isPanning.current = true;
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
+      const stage = stageRef.current;
+      if (stage && spaceHeld.current) stage.container().style.cursor = 'grabbing';
       return;
     }
 
@@ -489,38 +522,72 @@ export function SchemaCanvas({
         });
         break;
       case 'text':
-        finishShape({
-          id: uuid(),
-          type: 'text',
-          x,
-          y,
-          width: Math.max(w, 120),
-          height: Math.max(h, 40),
-          text: 'Подпись',
-          fontSize: 18,
-          fill: 'transparent',
-          stroke: strokeColor,
-          strokeWidth: 0,
-        });
+        finishShape(
+          {
+            id: uuid(),
+            type: 'text',
+            x,
+            y,
+            width: Math.max(w, 120),
+            height: Math.max(h, 40),
+            text: '',
+            fontSize: 18,
+            fill: 'transparent',
+            stroke: strokeColor,
+            strokeWidth: 0,
+          },
+          true,
+        );
         break;
       case 'comment':
-        finishShape({
-          id: uuid(),
-          type: 'comment',
-          x,
-          y,
-          width: Math.max(w, 180),
-          height: Math.max(h, 90),
-          text: 'Комментарий…',
-          cornerRadius: 8,
-          fill: '#faf6e8',
-          stroke: '#d4c4a8',
-          strokeWidth: 1.5,
-        });
+        finishShape(
+          {
+            id: uuid(),
+            type: 'comment',
+            x,
+            y,
+            width: Math.max(w, 180),
+            height: Math.max(h, 90),
+            text: '',
+            cornerRadius: 8,
+            fill: '#faf6e8',
+            stroke: '#d4c4a8',
+            strokeWidth: 1.5,
+          },
+          true,
+        );
         break;
       default:
         setDrawing(null);
     }
+  };
+
+  const handleStageDblClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (tool !== 'select' && tool !== 'text') return;
+    const clickedOnEmpty =
+      e.target === e.target.getStage() || e.target.name() === 'background-grid';
+    if (!clickedOnEmpty) return;
+
+    const world = getWorldPointer();
+    if (!world) return;
+
+    const id = uuid();
+    const el: SchemaElement = {
+      id,
+      type: 'text',
+      x: world.x - 60,
+      y: world.y - 20,
+      width: 120,
+      height: 40,
+      text: '',
+      fontSize: 18,
+      fill: 'transparent',
+      stroke: strokeColor,
+      strokeWidth: 0,
+    };
+    onAdd(el);
+    onSelect([id], 'replace');
+    window.setTimeout(() => onEditText?.(id), 0);
   };
 
   const handleElementSelect = (id: string, shiftKey: boolean) => {
@@ -608,6 +675,7 @@ export function SchemaCanvas({
         onMouseMove={handleStageMouseMove}
         onMouseUp={handleStageMouseUp}
         onMouseLeave={handleStageMouseUp}
+        onDblClick={handleStageDblClick}
         style={{ cursor: defaultCursor() }}
       >
         <Layer ref={layerRef}>
@@ -656,6 +724,7 @@ export function SchemaCanvas({
                 onDragEnd={(id, nx, ny) => onUpdate(id, { x: nx, y: ny })}
                 onTransformEnd={(id, patch) => onUpdate(id, patch)}
                 onEditText={onEditText}
+                editableText={tool === 'select'}
                 onAnchorDragStart={
                   tool === 'connector' || tool === 'select'
                     ? handleAnchorDragStart
@@ -711,7 +780,35 @@ export function SchemaCanvas({
               />
             )
           )}
-          {previewRect && (
+          {previewRect && tool === 'diamond' && (
+            <Line
+              x={previewRect.x}
+              y={previewRect.y}
+              points={diamondPoints(previewRect.w, previewRect.h)}
+              closed
+              stroke={strokeColor}
+              strokeWidth={1}
+              dash={[6, 4]}
+              fill={fillColor}
+              opacity={0.5}
+              listening={false}
+            />
+          )}
+          {previewRect && tool === 'triangle' && (
+            <Line
+              x={previewRect.x}
+              y={previewRect.y}
+              points={trianglePoints(previewRect.w, previewRect.h)}
+              closed
+              stroke={strokeColor}
+              strokeWidth={1}
+              dash={[6, 4]}
+              fill={fillColor}
+              opacity={0.5}
+              listening={false}
+            />
+          )}
+          {previewRect && tool !== 'diamond' && tool !== 'triangle' && (
             <Rect
               x={previewRect.x}
               y={previewRect.y}

@@ -12,3 +12,14 @@
   line-height: 1.35;
   box-shadow: var(--shadow-lg);
 }
+
+.text-editor-overlay--inline {
+  background: rgba(255, 252, 248, 0.92);
+  backdrop-filter: blur(2px);
+  border-color: rgba(139, 157, 195, 0.85);
+  box-shadow: 0 0 0 1px rgba(139, 157, 195, 0.2), var(--shadow-md);
+}
+
+.text-editor-overlay::placeholder {
+  color: rgba(61, 61, 72, 0.45);
+}
