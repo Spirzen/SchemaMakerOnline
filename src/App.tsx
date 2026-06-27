@@ -87,9 +87,10 @@ export default function App() {
   useEffect(() => {
     const update = () => {
       const sidePanels = window.innerWidth < 900 ? 0 : 420;
+      const chromeHeight = 56 + 56; /* ecosystem nav + toolbar */
       setStageSize({
         w: Math.max(320, window.innerWidth - sidePanels),
-        h: Math.max(240, window.innerHeight - 56),
+        h: Math.max(240, window.innerHeight - chromeHeight),
       });
       if (canvasWrapRef.current) {
         setCanvasRect(canvasWrapRef.current.getBoundingClientRect());

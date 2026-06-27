@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "updated": "2026-06-28",
+  "domains": {
+    "spirzen": "https://spirzen.ru",
+    "terms": "https://terms.spirzen.ru",
+    "lab": "https://lab.spirzen.ru",
+    "games": "https://games.spirzen.ru",
+    "kids": "https://kids.spirzen.ru",
+    "tools": "https://tools.spirzen.ru",
+    "code": "https://code.spirzen.ru",
+    "play": "https://play.spirzen.ru",
+    "html": "https://html.spirzen.ru",
+    "sql": "https://sql.spirzen.ru",
+    "schema": "https://schema.spirzen.ru"
+  },
+  "routes": {
+    "glossaryPrefix": "/glossary",
+    "labPrefix": "/lab",
+    "toolsPrefix": "/tools",
+    "gamesPrefix": "/games",
+    "kidsPrefix": "/kids"
+  },
+  "nav": {
+    "ecosystem": [
+      {"id": "spirzen", "label": "Энциклопедия", "hrefKey": "spirzen"},
+      {"id": "terms", "label": "Глоссарий", "hrefKey": "terms", "routeKey": "glossaryPrefix", "suffix": "/intro"},
+      {"id": "lab", "label": "Лаборатория", "hrefKey": "lab", "routeKey": "labPrefix", "suffix": "/intro"},
+      {"id": "code", "label": "Код", "hrefKey": "code"},
+      {"id": "play", "label": "Play", "hrefKey": "play"},
+      {"id": "tools", "label": "Инструменты", "hrefKey": "tools", "routeKey": "toolsPrefix", "suffix": "/intro"},
+      {"id": "games", "label": "Игры", "hrefKey": "games"},
+      {"id": "kids", "label": "Для детей", "hrefKey": "kids"},
+      {"id": "html", "label": "WebEditor", "hrefKey": "html"},
+      {"id": "sql", "label": "SQL", "hrefKey": "sql"},
+      {"id": "schema", "label": "Schema", "hrefKey": "schema"}
+    ]
+  },
+  "postMessage": {
+    "themeRequest": "itu-theme-request",
+    "themeChange": "itu-theme-change",
+    "source": "itu-portal"
+  }
+}
