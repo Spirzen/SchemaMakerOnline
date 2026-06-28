@@ -34,18 +34,25 @@ npm run build:pages
 
 Если репозиторий на GitHub называется иначе, измените `GITHUB_PAGES_BASE` в `vite.config.ts`.
 
-## Публикация на GitHub Pages
+## Публикация
 
-1. Создайте репозиторий `SchemaMakerOnline` (или переименуйте `base` в конфиге).
-2. Запушьте код в ветку `main`.
-3. В **Settings → Pages** выберите источник **GitHub Actions**.
-4. Workflow `.github/workflows/deploy.yml` соберёт и опубликует `dist`.
+### Свой домен (schema.spirzen.ru)
 
-Сайт будет доступен по адресу: `https://<username>.github.io/SchemaMakerOnline/`
+1. Запушьте код в ветку `main`.
+2. В **Settings → Pages** выберите источник **GitHub Actions** и укажите кастомный домен.
+3. Workflow `.github/workflows/deploy.yml` соберёт с `base: /` и опубликует `dist`.
+
+### GitHub Pages (подпуть /SchemaMakerOnline/)
+
+```bash
+npm run build:pages
+```
+
+Сайт: `https://<username>.github.io/SchemaMakerOnline/`
 
 ## Безопасность
 
-- **CSP** в `index.html` — только свой origin, шрифты Google, без inline-скриптов
+- **CSP** в `index.html` — только свой origin, шрифты Google; `frame-ancestors` задавайте HTTP-заголовком на сервере
 - Импорт JSON: макс. 2 МБ, до 500 элементов, проверка цветов и полей
 - Имена файлов при экспорте санитизируются
 - Нет бэкенда, cookies и трекеров
